@@ -19,7 +19,7 @@ options.add_argument('--headless')
 options.add_argument('--disable-blink-features=AutomationControlled')
 options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
 
-# Initialize the driver
+# Initialize driver
 service = Service(ChromeDriverManager().install())
 driver = webdriver.Chrome(service=service, options=options)
 
@@ -28,7 +28,7 @@ base_domain = "https://malaycivilization.com.my"
 pantuns = []
 seen_pantuns = set()
 
-# --- Classification & ML helper functions ---
+# Classification & ML helper functions 
 def count_syllables(line):
     return len(re.findall(r'[aeiouAEIOU]+', line))
 
@@ -115,7 +115,7 @@ def extract_features(pantun_lines):
         "line_count": len(pantun_lines)
     }
 
-# --- Web scraping ---
+# Web scraping
 def extract_pantun_text(item):
     pantun_link = item.find('a', class_='permalink')
     if not pantun_link:
@@ -205,21 +205,21 @@ os.makedirs('output', exist_ok=True)
 csv_path = os.path.join('output', 'pantun_dataset_ml.csv')
 df = pd.DataFrame(pantuns, columns=['id', 'pantun', 'quality', 'reason', 'avg_syllables', 'rhyme_type', 'line_count'])
 df.to_csv(csv_path, index=False, encoding='utf-8-sig')
-print(f"\n✅ Successfully saved {len(df)} pantuns to '{csv_path}'")
+print(f"\n Successfully saved {len(df)} pantuns to '{csv_path}'")
 
-# --- ML classification ---
-print("\n📊 Training machine learning model for pantun quality classification...")
+# ML Classification
+print("\n Training machine learning model for pantun quality classification...")
 
 X = df[['avg_syllables', 'line_count', 'rhyme_type']].copy()
 X['rhyme_type'] = LabelEncoder().fit_transform(X['rhyme_type'])
 y = LabelEncoder().fit_transform(df['quality'])
 
 if len(set(y)) < 2:
-    print("❌ Not enough classes to train ML model. Need at least 2 different quality labels.")
+    print("Not enough classes to train ML model. Need at least 2 different quality labels.")
 else:
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     model = LogisticRegression(max_iter=1000)
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
-    print("\n🧠 Classification Report:")
+    print("\n Classification Report:")
     print(classification_report(y_test, y_pred))
