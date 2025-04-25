@@ -202,7 +202,7 @@ finally:
 
 # Save to CSV
 os.makedirs('output', exist_ok=True)
-csv_path = os.path.join('output', 'pantun_dataset_ml.csv')
+csv_path = os.path.join('output', 'pantun_dataset.csv')
 df = pd.DataFrame(pantuns, columns=['id', 'pantun', 'quality', 'reason', 'avg_syllables', 'rhyme_type', 'line_count'])
 df.to_csv(csv_path, index=False, encoding='utf-8-sig')
 print(f"\n Successfully saved {len(df)} pantuns to '{csv_path}'")
@@ -221,5 +221,5 @@ else:
     model = LogisticRegression(max_iter=1000)
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
-    print("\n Classification Report:")
+    print("\n Classification Results:")
     print(classification_report(y_test, y_pred))
