@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=C:\Users\Lenovo\OneDrive\Documents\SEM 6\CSC575\PantunSense\pantun_dataset\pantun_env
+set VIRTUAL_ENV=C:\laragon\www\PantunSense\pantun_dataset\pantun_env
 
 if not defined PROMPT set PROMPT=$P$G
 

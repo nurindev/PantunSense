@@ -12,6 +12,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report
+import joblib
 
 # Configure Chrome options
 options = webdriver.ChromeOptions()
@@ -59,14 +60,14 @@ def get_rhyme_scheme(lines):
 
 def contains_nature_metaphor(text):
     alam_keywords = [
-    "laut", "lautan", "ombak", "taufan", "semesta",  "pantai", "rimba", "sungai", "arus", "bulan", "bintang", "matahari", "pelangi",
-    "hujan", "langit", "embun", "bumi", "awan", "ribut", "redup", "angin", "petir", "gunung", "bukit", "hutan", "dahan","pohon", "bunga", "daun",
-    "mentari", "bayu", "panas", "senja", "gelombang", "lurah", "tebing", "hilir", "cuaca", "perdu", "rumpun",
-    "kaya", "herba", "gelemat", "kantan", "lengkuas", "turi", "kuda", "kelam", "kala", "ular", "rusa", "kedidi", "senduduk", "pandan", "sena", "sirih", "sunti", "baldu", "gerimis",
-    "lukah", "muara", "kenari", "undan", "pala", "merekah", "tabir", "sulaman", "terang", "ungka", "sayat", "kenjah", "semalu", "mengkudu", ""
-    "palas", "empulur", "duku", "selasih", "cermai", "belukar", "meranti", "leban", "rambai", "bidara", "keladi", "padi", "sawah",
-    "halaman", "ijuk", "rotan", "bunga melati", "talas", "rumbia", "pegaga", "bunga selasih", "belukar", "kanji", "kurma", "periuk kera", "bersirih", "pisang emas", "nangka", "pelam", "jambu", "sena", "mengkudu", "kandis",
-    "ikan", "berudu", "merbah", "gagak", "angsa", "unggas", "lipan bara", "puyuh", "rerama", "camar", "balam", "pipit", "monyet", "buaya", "singa", "ular", "agas", "ayam"
+        "laut", "lautan", "ombak", "taufan", "semesta",  "pantai", "rimba", "sungai", "arus", "bulan", "bintang", "matahari", "pelangi",
+        "hujan", "langit", "embun", "bumi", "awan", "ribut", "redup", "angin", "petir", "gunung", "bukit", "hutan", "dahan","pohon", "bunga", "daun",
+        "mentari", "bayu", "panas", "senja", "gelombang", "lurah", "tebing", "hilir", "cuaca", "perdu", "rumpun",
+        "kaya", "herba", "gelemat", "kantan", "lengkuas", "turi", "kuda", "kelam", "kala", "ular", "rusa", "kedidi", "senduduk", "pandan", "sena", "sirih", "sunti", "baldu", "gerimis",
+        "lukah", "muara", "kenari", "undan", "pala", "merekah", "tabir", "sulaman", "terang", "ungka", "sayat", "kenjah", "semalu", "mengkudu", 
+        "palas", "empulur", "duku", "selasih", "cermai", "belukar", "meranti", "leban", "rambai", "bidara", "keladi", "padi", "sawah",
+        "halaman", "ijuk", "rotan", "bunga melati", "talas", "rumbia", "pegaga", "bunga selasih", "belukar", "kanji", "kurma", "periuk kera", "bersirih", "pisang emas", "nangka", "pelam", "jambu", "sena", "mengkudu", "kandis",
+        "ikan", "berudu", "merbah", "gagak", "angsa", "unggas", "lipan bara", "puyuh", "rerama", "camar", "balam", "pipit", "monyet", "buaya", "singa", "ular", "agas", "ayam"
     ]
     return any(word in text.lower() for word in alam_keywords)
 
@@ -202,7 +203,7 @@ finally:
 
 # Save to CSV
 os.makedirs('output', exist_ok=True)
-csv_path = os.path.join('output', 'pantun_dataset.csv')
+csv_path = os.path.join('output', 'pantun_dataset2.csv')
 df = pd.DataFrame(pantuns, columns=['id', 'pantun', 'quality', 'reason', 'avg_syllables', 'rhyme_type', 'line_count'])
 df.to_csv(csv_path, index=False, encoding='utf-8-sig')
 print(f"\n Successfully saved {len(df)} pantuns to '{csv_path}'")
@@ -210,9 +211,14 @@ print(f"\n Successfully saved {len(df)} pantuns to '{csv_path}'")
 # ML Classification
 print("\n Training machine learning model for pantun quality classification...")
 
-X = df[['avg_syllables', 'line_count', 'rhyme_type']].copy()
-X['rhyme_type'] = LabelEncoder().fit_transform(X['rhyme_type'])
-y = LabelEncoder().fit_transform(df['quality'])
+# Encode features
+rhyme_type_encoder = LabelEncoder()
+df['rhyme_type_encoded'] = rhyme_type_encoder.fit_transform(df['rhyme_type'])
+quality_encoder = LabelEncoder()
+df['quality_encoded'] = quality_encoder.fit_transform(df['quality'])
+
+X = df[['avg_syllables', 'line_count', 'rhyme_type_encoded']]
+y = df['quality_encoded']
 
 if len(set(y)) < 2:
     print("Not enough classes to train ML model. Need at least 2 different quality labels.")
@@ -223,3 +229,9 @@ else:
     y_pred = model.predict(X_test)
     print("\n Classification Results:")
     print(classification_report(y_test, y_pred))
+
+    # Save model and encoders
+    joblib.dump(model, 'output/pantun_quality_model.joblib')
+    joblib.dump(rhyme_type_encoder, 'output/rhyme_type_encoder.joblib')
+    joblib.dump(quality_encoder, 'output/quality_encoder.joblib')
+    print("Model and encoders saved to output/")
