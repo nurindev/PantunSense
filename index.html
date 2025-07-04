@@ -395,9 +395,9 @@
         document.getElementById('pantunInput').value = '';
         document.getElementById('resultSection').style.display = 'none';
         document.getElementById('emptyState').style.display = 'block';
-    }
+        }
 
-    async function analyzePantun() {
+        async function analyzePantun() {
         const input = document.getElementById('pantunInput').value.trim();
         if (!input) {
             alert('Please enter a pantun to analyze.');
@@ -408,154 +408,146 @@
         document.getElementById('resultSection').style.display = 'none';
         document.getElementById('emptyState').style.display = 'none';
 
-        // Extract features
         const lines = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
         const syllableCounts = lines.map(line => countSyllables(line));
         const avgSyllables = syllableCounts.reduce((a, b) => a + b, 0) / (syllableCounts.length || 1);
         const rhymeScheme = analyzeRhymeScheme(lines);
 
-        // Prepare data for backend
         const features = {
+            pantun: input,
             avg_syllables: avgSyllables,
             line_count: lines.length,
             rhyme_type: rhymeScheme
         };
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            const mockResponse = {
-                quality: lines.length === 4 ? 'Good' : 'Moderate',
-                reason: lines.length === 4 ? 'Excellent! Valid 4-line pantun structure with ideal average syllable counts and nature metaphors.' : 'Non-standard line count',
-                tips: lines.length === 4 ? '' : 'Traditional pantuns usually have 4 lines'
-            };
+            const response = await fetch('http://127.0.0.1:5000/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(features)
+            });
+
+            const data = await response.json();
+
             const analysis = {
-                quality: mockResponse.quality,
-                reason: mockResponse.reason,
-                tips: mockResponse.tips,
-                avgSyllables: avgSyllables.toFixed(1),
-                rhymeScheme: rhymeScheme,
-                hasNatureMetaphors: detectNatureMetaphors(input),
-                syllableCounts,
-                lines
+            quality: data.quality,
+            reason: data.reason,
+            tips: data.tips,
+            avgSyllables: avgSyllables.toFixed(1),
+            rhymeScheme: rhymeScheme,
+            hasNatureMetaphors: detectNatureMetaphors(input),
+            syllableCounts,
+            lines
             };
+
             displayResults(analysis);
+
         } catch (err) {
             alert('Error analyzing pantun: ' + err);
         } finally {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('resultSection').style.display = 'block';
         }
-    }
+        }
 
-    function countSyllables(word) {
-        // Simple Malay syllable count: count vowel groups
+        function countSyllables(word) {
         const matches = word.match(/[aeiouAEIOU]+/g);
         return matches ? matches.length : 1;
-    }
+        }
 
-    function getRhymeSuffix(word) {
+        function getRhymeSuffix(word) {
         word = word.replace(/[^a-zA-Z]/g, '').toLowerCase();
         let suffixes = [];
         for (let i = 1; i <= Math.min(word.length, 3); i++) {
             suffixes.push(word.slice(-i));
         }
         return suffixes;
-    }
+        }
 
-    function isRhymeMatch(word1, word2) {
+        function isRhymeMatch(word1, word2) {
         const suffixes1 = getRhymeSuffix(word1);
         const suffixes2 = getRhymeSuffix(word2);
         return suffixes1.some(s1 => suffixes2.includes(s1));
-    }
+        }
 
-    function analyzeRhymeScheme(lines) {
+        function analyzeRhymeScheme(lines) {
         if (lines.length !== 4) return 'Other';
         try {
-            const words = lines.map(line => {
-                const tokens = line.trim().split(/\s+/);
-                return tokens[tokens.length - 1];
-            });
-            // Check AAAA: all lines rhyme with the first
+            const words = lines.map(line => line.trim().split(/\s+/).pop());
             const allRhyme = words.every(w => isRhymeMatch(w, words[0]));
             if (allRhyme) return 'AAAA';
-            // Check ABAB: 1st rhymes with 3rd, 2nd with 4th, and 1st does NOT rhyme with 2nd
             const abab = isRhymeMatch(words[0], words[2]) &&
-                         isRhymeMatch(words[1], words[3]) &&
-                         !isRhymeMatch(words[0], words[1]);
+                        isRhymeMatch(words[1], words[3]) &&
+                        !isRhymeMatch(words[0], words[1]);
             if (abab) return 'ABAB';
             return 'Other';
         } catch {
             return 'Other';
         }
-    }
+        }
 
-    function detectNatureMetaphors(pantun) {
+        function detectNatureMetaphors(pantun) {
         const text = pantun.toLowerCase();
         return natureWords.some(word => text.includes(word));
-    }
+        }
 
-    function displayResults(analysis) {
+        function displayResults(analysis) {
         const qualityBadge = document.getElementById('qualityBadge');
         qualityBadge.textContent = analysis.quality;
         qualityBadge.className = `quality-badge quality-${analysis.quality.toLowerCase()}`;
         document.getElementById('pantunDisplay').innerHTML = analysis.lines.join('<br>');
 
-        // Compose structure description
         const structureDesc = analysis.lines.length === 4
             ? 'Traditional 4-line pantun format'
             : `${analysis.lines.length} line${analysis.lines.length !== 1 ? 's' : ''} (Non-standard)`;
 
-        // Compose tips if Moderate or Poor
         let tipsHtml = '';
         if (['Moderate', 'Poor'].includes(analysis.quality) && analysis.tips) {
             tipsHtml = `
-                <div class="detail-item">
-                    <div class="detail-icon" style="background: none; font-size: 20px; color: #ffc107; margin-top: 0;">💡</div>
-                    <div class="detail-text">
-                        <span class="detail-label">Tips to Improve:</span> ${analysis.tips}
-                    </div>
+            <div class="detail-item">
+                <div class="detail-icon" style="background: none; font-size: 20px; color: #ffc107; margin-top: 0;">💡</div>
+                <div class="detail-text">
+                <span class="detail-label">Tips to Improve:</span> ${analysis.tips}
                 </div>
+            </div>
             `;
         }
 
         const detailsHtml = `
             <div class="detail-item">
-                <div class="detail-text">
-                    <span class="detail-label">Reason:</span> ${analysis.reason}
-                </div>
+            <div class="detail-text">
+                <span class="detail-label">Reason:</span> ${analysis.reason}
+            </div>
             </div>
             <div class="detail-item">
-                <div class="detail-icon"></div>
-                <div class="detail-text">
-                    <span class="detail-label">Structure:</span> ${structureDesc}
-                </div>
+            <div class="detail-icon"></div>
+            <div class="detail-text">
+                <span class="detail-label">Structure:</span> ${structureDesc}
+            </div>
             </div>
             <div class="detail-item">
-                <div class="detail-icon"></div>
-                <div class="detail-text">
-                    <span class="detail-label">Rhyme Scheme:</span> ${analysis.rhymeScheme === 'ABAB' ? 'ABAB pattern detected'
-                        : analysis.rhymeScheme === 'AAAA' ? 'AAAA pattern detected'
-                        : analysis.rhymeScheme === 'Other' ? 'Other pattern detected'
-                        : 'No valid rhyme pattern detected'}
-                </div>
+            <div class="detail-icon"></div>
+            <div class="detail-text">
+                <span class="detail-label">Rhyme Scheme:</span> ${analysis.rhymeScheme}
+            </div>
             </div>
             <div class="detail-item">
-                <div class="detail-icon"></div>
-                <div class="detail-text">
-                    <span class="detail-label">Average Syllables:</span> ${analysis.avgSyllables} per line
-                </div>
+            <div class="detail-icon"></div>
+            <div class="detail-text">
+                <span class="detail-label">Average Syllables:</span> ${analysis.avgSyllables} per line
+            </div>
             </div>
             <div class="detail-item">
-                <div class="detail-icon"></div>
-                <div class="detail-text">
-                    <span class="detail-label">Nature Metaphors:</span> ${analysis.hasNatureMetaphors ? 'Present' : 'Not detected'}
-                </div>
+            <div class="detail-icon"></div>
+            <div class="detail-text">
+                <span class="detail-label">Nature Metaphors:</span> ${analysis.hasNatureMetaphors ? 'Present' : 'Not detected'}
+            </div>
             </div>
             ${tipsHtml}
         `;
+
         document.getElementById('analysisDetails').innerHTML = detailsHtml;
-    }
+        }
     </script>
 </body>
 </html>
