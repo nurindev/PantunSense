@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify, render_template
 import joblib
 import numpy as np
 import re
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -42,6 +43,15 @@ def get_rhyme_scheme(lines):
     except:
         return "Invalid"
 
+def load_nature_words(filepath=None):
+    if filepath is None:
+        filepath = os.path.join(app.root_path, 'static', 'nature_words.txt')
+    with open(filepath, "r", encoding="utf-8") as f:
+        return set(word.strip().lower() for word in f.readlines() if word.strip())
+        
+nature_words = load_nature_words()
+
+
 # --- Routes ---
 @app.route("/")
 def index():
@@ -55,44 +65,60 @@ def predict():
     lines = [l.strip() for l in lines if l.strip()]
 
     if not lines:
-        return jsonify({"quality": "Poor", "reason": "Pantun cannot be empty.", "tips": "Write a 4-line traditional pantun with ABAB rhyme."})
+        return jsonify({
+            "quality": "Poor",
+            "reason": "Pantun cannot be empty.",
+            "tips": "Write a 4-line traditional pantun with ABAB rhyme and nature metaphors."
+        })
 
     avg_syllables = sum(count_syllables(l) for l in lines) / len(lines)
     rhyme_type = get_rhyme_scheme(lines)
+    has_nature_metaphor = any(word in text.lower() for word in nature_words)
 
-    tips = ""
-    reason = ""
-    fallback = "Other" if "Other" in rhyme_encoder.classes_ else rhyme_encoder.classes_[0]
-    rhyme_type_used = rhyme_type if rhyme_type in rhyme_encoder.classes_ else fallback
-
-    try:
-        rhyme_encoded = rhyme_encoder.transform([rhyme_type_used])[0]
-    except:
-        rhyme_encoded = 0
-
-    features = np.array([[avg_syllables, len(lines), rhyme_encoded]])
-    pred = model.predict(features)[0]
-    quality = quality_encoder.inverse_transform([pred])[0]
-
+    # Check if gibberish or clearly not pantun
     if len(lines) < 2 or avg_syllables < 5:
-        quality = "Poor"
-        reason = "This doesn't look like a pantun."
-        tips = "A good pantun has 4 lines with 8-12 syllables each and uses ABAB rhyme."
-    else:
-        if len(lines) != 4:
-            reason = "A good pantun has 4 lines."
-            tips += "Write your pantun in 4 lines. "
-        elif rhyme_type_used != "ABAB":
-            reason = "A good pantun usually uses an ABAB rhyme pattern."
-            tips += "Try to use an ABAB rhyme pattern. "
-        elif not (8 <= avg_syllables <= 12):
-            reason = "A good pantun usually has 8-12 syllables per line."
-            tips += "Aim for 8-12 syllables per line. "
-        else:
-            reason = "Excellent! Your pantun matches the ideal traditional structure."
-            tips = ""
+        return jsonify({
+            "quality": "Poor",
+            "reason": "This doesn't look like a pantun.",
+            "tips": "Write 4 lines with proper words, using nature metaphors and ABAB rhyme."
+        })
 
-    return jsonify({'quality': quality, 'reason': reason, 'tips': tips.strip()})
+    # Evaluate structure
+    conditions_met = {
+        "line_count": len(lines) == 4,
+        "rhyme_abab": rhyme_type == "ABAB",
+        "syllable_range": 8 <= avg_syllables <= 12,
+        "has_nature": has_nature_metaphor
+    }
+
+    total_passed = sum(conditions_met.values())
+
+    if total_passed == 4:
+        quality = "Good"
+        reason = "Excellent! Your pantun matches all traditional structure elements."
+        tips = ""
+    elif total_passed >= 2:
+        quality = "Moderate"
+        reason = "Your pantun meets some structural criteria but could be improved."
+        tips = ""
+        if not conditions_met["line_count"]:
+            tips += "Make sure your pantun has 4 lines. "
+        if not conditions_met["rhyme_abab"]:
+            tips += "Try to use an ABAB rhyme pattern. "
+        if not conditions_met["syllable_range"]:
+            tips += "Each line should have 8–12 syllables. "
+        if not conditions_met["has_nature"]:
+            tips += "Use natural elements or metaphors to strengthen imagery. "
+    else:
+        quality = "Poor"
+        reason = "Your pantun doesn't follow the typical structure."
+        tips = "Write 4 lines with 8–12 syllables, ABAB rhyme, and nature metaphors."
+
+    return jsonify({
+        "quality": quality,
+        "reason": reason,
+        "tips": tips.strip()
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)

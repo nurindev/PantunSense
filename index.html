@@ -370,26 +370,22 @@
     </div>
 
     <script>
-    const natureWords = [
-        "air", "angin", "angsa", "aren", "awan", "ayam", "balam", "bambu", "batu", "bebek", 
-        "belukar", "bidara", "bintang", "buaya", "bunga", "bunga melati", "bunga selasih", 
-        "bulan", "bukit", "burung", "camar", "cengkeh", "cermai", "cicak", "cuaca", "daun", 
-        "dermaga", "domba", "duku", "elang", "embun", "gagak", "gajah", "guntur", "gunung", 
-        "halaman", "harimau", "helang", "herba", "hilir", "hujan", "hutan", "ijuk", "ikan", 
-        "jagung", "jambu", "kabut", "kala", "kambing", "kandis", "kantan", "kayu", "kayu manis", 
-        "kedidi", "keladi", "kelam", "kelapa", "kenari", "kenjah", "kerbau", "ketela", "kilat", 
-        "kota", "kuda", "kupu", "kurma", "lada", "ladang", "lalat", "langit", "laut", "lautan", 
-        "lebah", "leban", "lembu", "lengkuas", "lipan bara", "lukah", "lurah", "matahari", 
-        "mentari", "meranti", "merbah", "merpati", "monyet", "muara", "nangka", "nyamuk", 
-        "ombak", "padi", "pala", "palas", "panas", "pandan", "pantai", "pasir", "pegaga", 
-        "pelabuhan", "pelam", "pelangi", "perahu", "perdu", "petir", "pinang", "pisang", 
-        "pisang emas", "pohon", "pulau", "puyuh", "rajawali", "rambai", "ranting", "redup", 
-        "rerama", "ribut", "rimba", "rotan", "rumbia", "rumpai", "rumpun", "rusa", "sampan", 
-        "sawah", "sayat", "selasih", "selat", "semalu", "semesta", "semut", "senja", "senti", 
-        "sirih", "sungai", "tabir", "talas", "tanah", "tanjung", "taufan", "tebing", "tebu", 
-        "teluk", "tembakau", "terang", "titi", "turi", "ubi", "udang", "ular", "undan", "ungka", 
-        "unggas", "cempedak", "rambutan", "melati", "harum", "malam", "senja", "siang", "pagi"
-    ];
+    let natureWords = [];
+
+    async function loadNatureWords() {
+        try {
+            const response = await fetch('/static/nature_words.txt');
+            const text = await response.text();
+            natureWords = text
+                .split('\n')
+                .map(word => word.trim().toLowerCase())
+                .filter(word => word.length > 0);
+        } catch (error) {
+            console.error('Failed to load nature_words.txt:', error);
+        }
+    }
+
+    loadNatureWords();
 
     function clearInput() {
         document.getElementById('pantunInput').value = '';
