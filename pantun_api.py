@@ -135,7 +135,7 @@ def predict():
         if not conditions["nature"]:
             tips.append("Include nature metaphors for stronger imagery.")
         if not conditions["rhyme"]:
-            tips.append("Try using the ABAB rhyme scheme instead of {}.".format(rhyme_type))
+            tips.append("Try using the ABAB rhyme scheme.")
 
         tips = " ".join(tips)
     else:
