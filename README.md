@@ -1,6 +1,7 @@
 test
 
 steps to run (paste in terminal):
+1) Fork this repository. If you are using VS Code, clone the repository you forked before.
 1) pip install -r requirements.txt
 2) Set-ExecutionPolicy RemoteSigned -Scope CurrentUser  # Make sure PowerShell Execution Policy is set to allow script execution 
 3) . .\pantun_env\Scripts\Activate.ps1
