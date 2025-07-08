@@ -1,4 +1,4 @@
-#PantunSense
+![Screenshot 2025-07-08 114452](https://github.com/user-attachments/assets/273c017b-fc7e-4397-bbe9-79b5f997ffc0)#PantunSense
 test
 
 steps to run (paste in terminal):
@@ -18,4 +18,5 @@ Riuh camar terbang ke kali;
 Indah bahasa santun bestari,
 Tanda budi dikenang sekali."
 
-C:\laragon\www\PantunSense\pantun_dataset\pantun_env
+C:\laragon\www\PantunSense\pantun_dataset\pantun_env!
+[Uploading Screenshot 2025-07-08 114452.png…]()
