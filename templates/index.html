@@ -274,13 +274,6 @@
             flex-shrink: 0;
         }
 
-        .detail-icon::after {
-            content: '✓';
-            color: white;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
         .detail-text {
             color: #555;
             line-height: 1.4;
@@ -370,179 +363,194 @@
     </div>
 
     <script>
-    let natureWords = [];
+        let natureWords = [];
 
-    async function loadNatureWords() {
-        try {
-            const response = await fetch('/static/nature_words.txt');
-            const text = await response.text();
-            natureWords = text
-                .split('\n')
-                .map(word => word.trim().toLowerCase())
-                .filter(word => word.length > 0);
-        } catch (error) {
-            console.error('Failed to load nature_words.txt:', error);
+        async function loadNatureWords() {
+            try {
+                const response = await fetch('/static/nature_words.txt');
+                const text = await response.text();
+                natureWords = text
+                    .split('\n')
+                    .map(word => word.trim().toLowerCase())
+                    .filter(word => word.length > 0);
+            } catch (error) {
+                console.error('Failed to load nature_words.txt:', error);
+            }
         }
-    }
 
-    loadNatureWords();
+        loadNatureWords();
 
-    function clearInput() {
-        document.getElementById('pantunInput').value = '';
-        document.getElementById('resultSection').style.display = 'none';
-        document.getElementById('emptyState').style.display = 'block';
+        function clearInput() {
+            document.getElementById('pantunInput').value = '';
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
         }
 
         async function analyzePantun() {
-        const input = document.getElementById('pantunInput').value.trim();
-        if (!input) {
-            alert('Please enter a pantun to analyze.');
-            return;
-        }
+            const input = document.getElementById('pantunInput').value.trim();
+            if (!input) {
+                alert('Please enter a pantun to analyze.');
+                return;
+            }
 
-        document.getElementById('loading').style.display = 'block';
-        document.getElementById('resultSection').style.display = 'none';
-        document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
 
-        const lines = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-        const syllableCounts = lines.map(line => countSyllables(line));
-        const avgSyllables = syllableCounts.reduce((a, b) => a + b, 0) / (syllableCounts.length || 1);
-        const rhymeScheme = analyzeRhymeScheme(lines);
+            const lines = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            const syllableCounts = lines.map(line => countSyllables(line));
+            const avgSyllables = syllableCounts.reduce((a, b) => a + b, 0) / (syllableCounts.length || 1);
+            const rhymeScheme = analyzeRhymeScheme(lines);
 
-        const features = {
-            pantun: input,
-            avg_syllables: avgSyllables,
-            line_count: lines.length,
-            rhyme_type: rhymeScheme
-        };
-
-        try {
-            const response = await fetch('http://127.0.0.1:5000/predict', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(features)
-            });
-
-            const data = await response.json();
-
-            const analysis = {
-            quality: data.quality,
-            reason: data.reason,
-            tips: data.tips,
-            avgSyllables: avgSyllables.toFixed(1),
-            rhymeScheme: rhymeScheme,
-            hasNatureMetaphors: detectNatureMetaphors(input),
-            syllableCounts,
-            lines
+            const features = {
+                pantun: input,
+                avg_syllables: avgSyllables,
+                line_count: lines.length,
+                rhyme_type: rhymeScheme
             };
 
-            displayResults(analysis);
+            try {
+                const response = await fetch('http://127.0.0.1:5000/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(features)
+                });
 
-        } catch (err) {
-            alert('Error analyzing pantun: ' + err);
-        } finally {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('resultSection').style.display = 'block';
-        }
+                const data = await response.json();
+
+                const analysis = {
+                    quality: data.quality,
+                    reason: data.reason,
+                    tips: data.tips,
+                    avgSyllables: avgSyllables.toFixed(1),
+                    rhymeScheme: rhymeScheme,
+                    hasNatureMetaphors: detectNatureMetaphors(input),
+                    syllableCounts,
+                    lines
+                };
+
+                displayResults(analysis);
+
+            } catch (err) {
+                alert('Error analyzing pantun: ' + err);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('resultSection').style.display = 'block';
+            }
         }
 
         function countSyllables(word) {
-        const matches = word.match(/[aeiouAEIOU]+/g);
-        return matches ? matches.length : 1;
+            const matches = word.match(/[aeiouAEIOU]+/g);
+            return matches ? matches.length : 1;
         }
 
         function getRhymeSuffix(word) {
-        word = word.replace(/[^a-zA-Z]/g, '').toLowerCase();
-        let suffixes = [];
-        for (let i = 1; i <= Math.min(word.length, 3); i++) {
-            suffixes.push(word.slice(-i));
-        }
-        return suffixes;
+            word = word.replace(/[^a-zA-Z]/g, '').toLowerCase();
+            let suffixes = [];
+            for (let i = 1; i <= Math.min(word.length, 3); i++) {
+                suffixes.push(word.slice(-i));
+            }
+            return suffixes;
         }
 
         function isRhymeMatch(word1, word2) {
-        const suffixes1 = getRhymeSuffix(word1);
-        const suffixes2 = getRhymeSuffix(word2);
-        return suffixes1.some(s1 => suffixes2.includes(s1));
+            const suffixes1 = getRhymeSuffix(word1);
+            const suffixes2 = getRhymeSuffix(word2);
+            return suffixes1.some(s1 => suffixes2.includes(s1));
         }
 
         function analyzeRhymeScheme(lines) {
-        if (lines.length !== 4) return 'Other';
-        try {
-            const words = lines.map(line => line.trim().split(/\s+/).pop());
-            const allRhyme = words.every(w => isRhymeMatch(w, words[0]));
-            if (allRhyme) return 'AAAA';
-            const abab = isRhymeMatch(words[0], words[2]) &&
-                        isRhymeMatch(words[1], words[3]) &&
-                        !isRhymeMatch(words[0], words[1]);
-            if (abab) return 'ABAB';
-            return 'Other';
-        } catch {
-            return 'Other';
-        }
+            if (lines.length !== 4) return 'Other';
+            try {
+                const words = lines.map(line => line.trim().split(/\s+/).pop());
+                const allRhyme = words.every(w => isRhymeMatch(w, words[0]));
+                if (allRhyme) return 'AAAA';
+                const abab = isRhymeMatch(words[0], words[2]) &&
+                            isRhymeMatch(words[1], words[3]) &&
+                            !isRhymeMatch(words[0], words[1]);
+                if (abab) return 'ABAB';
+                return 'Other';
+            } catch {
+                return 'Other';
+            }
         }
 
         function detectNatureMetaphors(pantun) {
-        const text = pantun.toLowerCase();
-        return natureWords.some(word => text.includes(word));
+            const text = pantun.toLowerCase();
+            return natureWords.some(word => text.includes(word));
         }
 
-        function displayResults(analysis) {
-        const qualityBadge = document.getElementById('qualityBadge');
-        qualityBadge.textContent = analysis.quality;
-        qualityBadge.className = `quality-badge quality-${analysis.quality.toLowerCase()}`;
-        document.getElementById('pantunDisplay').innerHTML = analysis.lines.join('<br>');
-
-        const structureDesc = analysis.lines.length === 4
-            ? 'Traditional 4-line pantun format'
-            : `${analysis.lines.length} line${analysis.lines.length !== 1 ? 's' : ''} (Non-standard)`;
-
-        let tipsHtml = '';
-        if (['Moderate', 'Poor'].includes(analysis.quality) && analysis.tips) {
-            tipsHtml = `
-            <div class="detail-item">
-                <div class="detail-icon" style="background: none; font-size: 20px; color: #ffc107; margin-top: 0;">💡</div>
-                <div class="detail-text">
-                <span class="detail-label">Tips to Improve:</span> ${analysis.tips}
+        function getIconHTML(condition) {
+            const color = condition ? '#28a745' : '#dc3545'; // green or red
+            const symbol = condition ? '✓' : '✗';
+            return `
+                <div class="detail-icon" style="background: ${color};">
+                    <span style="color: white; font-size: 12px; font-weight: bold;">${symbol}</span>
                 </div>
-            </div>
             `;
         }
 
-        const detailsHtml = `
-            <div class="detail-item">
-            <div class="detail-text">
-                <span class="detail-label">Reason:</span> ${analysis.reason}
-            </div>
-            </div>
-            <div class="detail-item">
-            <div class="detail-icon"></div>
-            <div class="detail-text">
-                <span class="detail-label">Structure:</span> ${structureDesc}
-            </div>
-            </div>
-            <div class="detail-item">
-            <div class="detail-icon"></div>
-            <div class="detail-text">
-                <span class="detail-label">Rhyme Scheme:</span> ${analysis.rhymeScheme}
-            </div>
-            </div>
-            <div class="detail-item">
-            <div class="detail-icon"></div>
-            <div class="detail-text">
-                <span class="detail-label">Average Syllables:</span> ${analysis.avgSyllables} per line
-            </div>
-            </div>
-            <div class="detail-item">
-            <div class="detail-icon"></div>
-            <div class="detail-text">
-                <span class="detail-label">Nature Metaphors:</span> ${analysis.hasNatureMetaphors ? 'Present' : 'Not detected'}
-            </div>
-            </div>
-            ${tipsHtml}
-        `;
+        function displayResults(analysis) {
+            const qualityBadge = document.getElementById('qualityBadge');
+            qualityBadge.textContent = analysis.quality;
+            qualityBadge.className = `quality-badge quality-${analysis.quality.toLowerCase()}`;
+            document.getElementById('pantunDisplay').innerHTML = analysis.lines.join('<br>');
 
-        document.getElementById('analysisDetails').innerHTML = detailsHtml;
+            const structureDesc = analysis.lines.length === 4
+                ? 'Traditional 4-line pantun format'
+                : `${analysis.lines.length} line${analysis.lines.length !== 1 ? 's' : ''} (Non-standard)`;
+
+            const isStructureValid = analysis.lines.length === 4;
+            const isRhymeValid = ['ABAB'].includes(analysis.rhymeScheme);
+            const isSyllableAvgOk = analysis.avgSyllables >= 8 && analysis.avgSyllables <= 12;
+            const hasNature = analysis.hasNatureMetaphors;
+
+            let tipsHtml = '';
+            if (['Moderate', 'Poor'].includes(analysis.quality) && analysis.tips) {
+                tipsHtml = `
+                <div class="detail-item">
+                    <div class="detail-icon" style="background: none; font-size: 20px; color: #ffc107; margin-top: 0;">💡</div>
+                    <div class="detail-text">
+                        <span class="detail-label">Tips to Improve:</span> ${analysis.tips}
+                    </div>
+                </div>
+                `;
+            }
+
+            const detailsHtml = `
+                <div class="detail-item">
+                    <div class="detail-text">
+                        <span class="detail-label">Reason:</span> ${analysis.reason}
+                    </div>
+                </div>
+                <div class="detail-item">
+                    ${getIconHTML(isStructureValid)}
+                    <div class="detail-text">
+                        <span class="detail-label">Structure:</span> ${structureDesc}
+                    </div>
+                </div>
+                <div class="detail-item">
+                    ${getIconHTML(isRhymeValid)}
+                    <div class="detail-text">
+                        <span class="detail-label">Rhyme Scheme:</span> ${analysis.rhymeScheme}
+                    </div>
+                </div>
+                <div class="detail-item">
+                    ${getIconHTML(isSyllableAvgOk)}
+                    <div class="detail-text">
+                        <span class="detail-label">Average Syllables:</span> ${analysis.avgSyllables} per line
+                    </div>
+                </div>
+                <div class="detail-item">
+                    ${getIconHTML(hasNature)}
+                    <div class="detail-text">
+                        <span class="detail-label">Nature Metaphors:</span> ${hasNature ? 'Present' : 'Not detected'}
+                    </div>
+                </div>
+                ${tipsHtml}
+            `;
+
+            document.getElementById('analysisDetails').innerHTML = detailsHtml;
         }
     </script>
 </body>
